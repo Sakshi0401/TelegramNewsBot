@@ -1,10 +1,38 @@
-import praw
-import pprint
-from bs4 import BeautifulSoup
-import requests
+import praw #Python Reddit API Wrapper
+import pprint #data pretty printer
+from bs4 import BeautifulSoup #for webscrapping
+import requests #for handling http requests 
+import html5lib
+
+class message: # object we'll use to store all the info a submission can give us along with the scrapped info
+	
+	def __init__(self, sub):
+		self.title = sub.title
+		self.url = sub.url
+		self.score = sub.score
+		self.author = sub.author
+		
+		
+		
+		
 
 reddit = praw.Reddit(client_id='snkttga2QvG1Pg',client_secret='eTxtI098QqWOj0kRjJZm_iyGt0s',grant_type='client_credentials',user_agent='mytestscript/1.0')
-subs = reddit.subreddit('news').hot(limit=10)
+subs = reddit.subreddit('news').hot(limit=1) #can extract the top 'limit' number of reddit posts; for now, 1
+
+subs = [sub for sub in subs if not sub.domain.startswith('self.')] #convert from object to a list of submission objects 
+sub = subs[0]
+
+sub #submission object of a post on reddit
+msg = message(sub)
+url = msg.url
+
+r = requests.get(url)
+soup = BeautifulSoup(r.content, 'html5lib') 
+print(soup.prettify().encode("utf-8")) 
+
+
+
+'''
 pprint.pprint([(s.score, s.title) for s in subs])
 subs = [sub for sub in subs if not sub.domain.startswith('self.')]
 
@@ -35,4 +63,5 @@ for sub in subs:
 		elif tag.name in ['h3', 'h4', 'h5', 'h6']:
 			return f'{"#" * int(tag.name[1:])} {tag.text}'
 		elif tag.name == 'pre':
-			return f'```\n{tag.text}\n```'
+			return f'```\n{tag.text}\n```
+'''
