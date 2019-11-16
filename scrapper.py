@@ -1,67 +1,47 @@
 import praw #Python Reddit API Wrapper
 import pprint #data pretty printer
-from bs4 import BeautifulSoup #for webscrapping
 import requests #for handling http requests 
-import html5lib
+from newspaper import Article 
+import time
 
-class message: # object we'll use to store all the info a submission can give us along with the scrapped info
+def telegram_bot_sendtext(bot_message):
+	bot_token = '906577902:AAH6Om6rpTes0PKUzGDlVtYBQtRAg5B73sc'
+	bot_chatID = '-342736590'
+	send_text = 'https://api.telegram.org/bot' + bot_token + '/sendMessage?chat_id=' + bot_chatID + '&parse_mode=Markdown&text=' + bot_message
+	response = requests.get(send_text)
+	return response.json()
+
+
+def telegram_message(author, upvotes, title, summary, url):
+	title = '*'+title+'* \n\n'
+	author = '_News sourced from r/news. \nAuthor: '+author.name+' \nNumber of Upvotes: '+str(upvotes)+'_'
+	url = '\n\nClick here to read the whole article: '+url+'\n\n'
 	
-	def __init__(self, sub):
-		self.title = sub.title
-		self.url = sub.url
-		self.score = sub.score
-		self.author = sub.author
-		
-		
-		
-		
+	return title + summary + url + author
 
-reddit = praw.Reddit(client_id='snkttga2QvG1Pg',client_secret='eTxtI098QqWOj0kRjJZm_iyGt0s',grant_type='client_credentials',user_agent='mytestscript/1.0')
-subs = reddit.subreddit('news').hot(limit=1) #can extract the top 'limit' number of reddit posts; for now, 1
-
-subs = [sub for sub in subs if not sub.domain.startswith('self.')] #convert from object to a list of submission objects 
-sub = subs[0]
-
-sub #submission object of a post on reddit
-msg = message(sub)
-url = msg.url
-
-r = requests.get(url)
-soup = BeautifulSoup(r.content, 'html5lib') 
-print(soup.prettify().encode("utf-8")) 
-
-
-
-'''
-pprint.pprint([(s.score, s.title) for s in subs])
-subs = [sub for sub in subs if not sub.domain.startswith('self.')]
-
-for sub in subs:
-	res = requests.get(sub.url)
-	if (res.status_code == 200 and 'content-type' in res.headers and res.headers.get('content-type').startswith('text/html')):
-		html = res.text
 	
-	#web-scrapping
+def main():
+	reddit = praw.Reddit(client_id='snkttga2QvG1Pg',client_secret='eTxtI098QqWOj0kRjJZm_iyGt0s',grant_type='client_credentials',user_agent='mytestscript/1.0')
+	subs = reddit.subreddit('worldnews').hot(limit=5) #can extract the top 'limit' number of reddit posts
+	subs = [sub for sub in subs if not sub.domain.startswith('self.')]#convert from object to a list of submission objects 
+
+	for sub in subs:
+		url = sub.url 
+		print(sub.url+'\n')
+		article = Article(url, language="en") # en for English 
+		article.download() 
+		article.parse() 
+		article.nlp() 
+		  
+		title = article.title
+		text = article.text
+		summary = article.summary
+		
+		telegram_bot_sendtext(telegram_message(sub.author,sub.score, title, summary, url))
+		
+		time.sleep(60)
+  
+if __name__== "__main__":
+  main()	
 	
-	soup = BeautifulSoup(res.text, 'html.parser')# find the article title
-	h1 = soup.body.find('h1')# find the common parent for <h1> and all <p>s.
-	root = h1
-	while root.name != 'body' and len(root.find_all('p')) < 5:
-		root = root.parent 
-		if len(root.find_all('p')) < 5: break# find all the content elements.
-	ps = root.find_all(['h2', 'h3', 'h4', 'h5', 'h6', 'p', 'pre'])
-	ps.insert(0, h1)    # add the title
-	content = [tag2md(p) for p in ps]
-	
-	def tag2md(tag):
-		if tag.name == 'p':
-			return tag.text
-		elif tag.name == 'h1':
-			return f'{tag.text}\n{"=" * len(tag.text)}'
-		elif tag.name == 'h2':
-			return f'{tag.text}\n{"-" * len(tag.text)}'
-		elif tag.name in ['h3', 'h4', 'h5', 'h6']:
-			return f'{"#" * int(tag.name[1:])} {tag.text}'
-		elif tag.name == 'pre':
-			return f'```\n{tag.text}\n```
-'''
+#https://api.telegram.org/bot906577902:AAH6Om6rpTes0PKUzGDlVtYBQtRAg5B73sc/getUpdates
