@@ -22,27 +22,31 @@ def telegram_message(author, upvotes, title, summary, url):
 	
 def report():
 	reddit = praw.Reddit(client_id='snkttga2QvG1Pg',client_secret='eTxtI098QqWOj0kRjJZm_iyGt0s',grant_type='client_credentials',user_agent='mytestscript/1.0')
-	subs = reddit.subreddit('worldnews').hot(limit=5) #can extract the top 'limit' number of reddit posts
+	subs = reddit.subreddit('worldnews').hot(limit=10) #can extract the top 'limit' number of reddit posts
 	subs = [sub for sub in subs if not sub.domain.startswith('self.')]#convert from object to a list of submission objects 
-
+	count=0
 	for sub in subs:
 		url = sub.url 
 		print(sub.url+'\n')
 		article = Article(url, language="en") # en for English 
-		article.download() 
-		article.parse() 
-		article.nlp() 
+		try:
+			article.download() 
+			article.parse() 
+			article.nlp() 
 		  
-		title = article.title
-		text = article.text
-		summary = article.summary
-		
+			title = article.title
+			text = article.text
+			summary = article.summary
+			count=count+1	
+		except:
+			pass
 		telegram_bot_sendtext(telegram_message(sub.author,sub.score, title, summary, url))
+		if count==5:
+			break
 		
-		time.sleep(60)
-
+		#time.sleep(60)
 def main():
-	schedule.every().day.at("14:00").do(report)
+	schedule.every().day.at("20:01").do(report)
 
 	while True:
 		schedule.run_pending()
@@ -51,4 +55,4 @@ def main():
 if __name__== "__main__":
   main()	
 	
-#https://api.telegram.org/bot906577902:AAH6Om6rpTes0PKUzGDlVtYBQtRAg5B73sc/getUpdates
+#https://api.telegram.org/bot906577902:AAH6Om6rpTes0PKUzGDlVtYBQtRAg5B73sc/getUpdates'''
